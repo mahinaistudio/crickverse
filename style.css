@@ -1,0 +1,61 @@
+body {
+    margin: 0;
+    padding: 0;
+    background: #0f172a;
+    color: white;
+    font-family: Arial, sans-serif;
+}
+
+.screen {
+    display: none;
+    text-align: center;
+    padding: 20px;
+    min-height: 100vh;
+
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.active {
+    display: flex;
+}
+
+h1, h2, h3 {
+    margin-bottom: 20px;
+}
+
+input {
+    padding: 12px;
+    margin: 10px 0;
+    width: 90%;
+    max-width: 300px;
+    font-size: 16px;
+    border-radius: 8px;
+    border: none;
+}
+
+button {
+    padding: 12px 20px;
+    margin: 8px;
+    font-size: 16px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+}
+
+#fingerButtons {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+}
+
+#fingerButtons button {
+    flex: 1 1 40%;
+    max-width: 120px;
+}
+
+.joinSection {
+    margin-top: 20px;
+}

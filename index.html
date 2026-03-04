@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Virtual Hand Cricket</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<div id="nameScreen" class="screen active">
+    <h1>Virtual Hand Cricket</h1>
+    <input type="text" id="playerNameInput" placeholder="Enter Your Name">
+    <button onclick="goToMode()">Enter</button>
+</div>
+
+<div id="modeScreen" class="screen">
+    <h2>Mode Selection</h2>
+    <button onclick="goToRoomSetup()">Create Room</button>
+
+    <div class="joinSection">
+        <input type="text" id="joinRoomCodeInput" placeholder="Enter Room Code">
+        <button onclick="joinRoom()">Join Room</button>
+    </div>
+</div>
+
+<div id="roomSetupScreen" class="screen">
+    <h2>Create Room</h2>
+    <input type="number" id="oversInput" placeholder="Overs">
+    <input type="number" id="wicketsInput" placeholder="Wickets">
+    <input type="text" id="createRoomCodeInput" placeholder="Room Code">
+    <button onclick="createRoom()">Create</button>
+</div>
+
+<div id="lobbyScreen" class="screen">
+    <h2>Waiting Lobby</h2>
+    <p>Room Code: <span id="lobbyRoomCode"></span></p>
+    <p>Team A: <span id="teamA">Empty</span></p>
+    <p>Team B: <span id="teamB">Empty</span></p>
+    <button onclick="startMatch()">Start Match</button>
+</div>
+
+<div id="gameScreen" class="screen">
+    <h2>Hand Cricket Match</h2>
+
+<p>Score A: <span id="scoreA">0</span> | Wickets: <span id="wicketsA">0</span></p>
+<p>Score B: <span id="scoreB">0</span> | Wickets: <span id="wicketsB">0</span></p>
+
+<p>Innings: <span id="innings">1</span></p>
+<p>Target: <span id="target">-</span></p>
+
+<hr>
+
+<h3>Select Fingers</h3>
+
+<div id="fingerButtons">
+  <button onclick="toggleFinger('thumb')">Thumb</button>
+  <button onclick="toggleFinger('index')">Index</button>
+  <button onclick="toggleFinger('middle')">Middle</button>
+  <button onclick="toggleFinger('ring')">Ring</button>
+  <button onclick="toggleFinger('pinky')">Pinky</button>
+</div>
+
+<p>Selected: <span id="selectedDisplay">None</span></p>
+
+<button onclick="lockHand()">LOCK</button>
+
+<p id="ballMessage"></p>
+</div>
+
+<div id="tossScreen" class="screen">
+    <h2>Toss</h2>
+
+    <div id="tossButtons">
+        <button onclick="sendToss('head')">Head</button>
+        <button onclick="sendToss('tail')">Tail</button>
+        <button onclick="sendToss('pass')">Pass</button>
+    </div>
+
+    <p id="tossWaiting">Waiting for toss decision...</p>
+</div>
+
+<div id="decisionScreen" class="screen">
+    <h2>Choose Bat or Bowl</h2>
+
+    <div id="decisionButtons">
+        <button onclick="sendDecision('bat')">Bat</button>
+        <button onclick="sendDecision('bowl')">Bowl</button>
+    </div>
+
+    <p id="decisionWaiting">Waiting for opponent to choose...</p>
+</div>
+
+<script src="script.js"></script>
+
+</body>
+</html>
