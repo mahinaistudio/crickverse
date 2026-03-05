@@ -3,6 +3,7 @@ let socket = null;
 let playerName = "";
 let roomCode = "";
 let isHost = false;
+let gameMode = "limited";
 
 function showScreen(id) {
     document.querySelectorAll(".screen").forEach(screen => {
@@ -34,15 +35,30 @@ function createRoom() {
     const wickets = document.getElementById("wicketsInput").value;
     const code = document.getElementById("createRoomCodeInput").value;
 
-    if (!overs || !wickets || !code) {
-        alert("Fill all fields!");
-        return;
-    }
+    if (gameMode === "limited") {
+
+  if (!overs || !wickets || !code) {
+    alert("Fill all fields!");
+    return;
+  }
+
+} else {
+
+  if (!wickets || !code) {
+    alert("Fill all fields!");
+    return;
+  }
+
+}
 
     roomCode = code;
     isHost = true;
 
-    connectToServer(code, overs, wickets);
+    if (gameMode === "limited") {
+  connectToServer(code, overs, wickets);
+} else {
+  connectToServer(code, null, wickets);
+}
 
     showScreen("lobbyScreen");
 }
@@ -120,6 +136,23 @@ function toggleFinger(finger) {
       : "None";
 }
 
+function setMode(mode) {
+
+  gameMode = mode;
+
+  const oversInput = document.getElementById("oversInput");
+
+  if (mode === "unlimited") {
+    oversInput.value = "";
+    oversInput.disabled = true;
+    oversInput.style.display = "none";
+  } else {
+    oversInput.disabled = false;
+    oversInput.style.display = "block";
+  }
+
+}
+
 function startMatch() {
 
   if (!isHost) {
@@ -145,7 +178,8 @@ function connectToServer(code, overs, wickets) {
     payload: {
         playerName: playerName,
         overs: overs,
-        wickets: wickets
+        wickets: wickets,
+        mode: gameMode
     }
 }));
     };
