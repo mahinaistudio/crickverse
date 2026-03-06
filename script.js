@@ -1,3 +1,4 @@
+let lastBalls = [];
 let selectedFingers = [];
 let socket = null;
 let playerName = "";
@@ -190,13 +191,29 @@ function connectToServer(code, overs, wickets) {
 
         const data = JSON.parse(event.data);
 
+if (data.type === "ROOM_JOINED") {
+
+  roomCode = data.payload.roomCode;
+
+  document.getElementById("lobbyRoomCode").innerText = roomCode;
+
+}
+
         if (data.type === "LOBBY_UPDATE") {
-            document.getElementById("lobbyRoomCode").innerText = roomCode;
-            document.getElementById("teamA").innerText =
-                data.payload.teamA || "Empty";
-            document.getElementById("teamB").innerText =
-                data.payload.teamB || "Empty";
-        }
+
+    if (data.payload.roomCode) {
+        roomCode = data.payload.roomCode;
+    }
+
+    document.getElementById("lobbyRoomCode").innerText = roomCode;
+
+    document.getElementById("teamA").innerText =
+        data.payload.teamA || "Empty";
+
+    document.getElementById("teamB").innerText =
+        data.payload.teamB || "Empty";
+
+}
 
 if (data.type === "MATCH_DECISION") {
 
@@ -223,15 +240,114 @@ if (data.type === "TOSS_CALLER") {
 
 if (data.type === "BALL_RESULT") {
 
-  document.getElementById("scoreA").innerText = data.payload.scoreA;
-  document.getElementById("scoreB").innerText = data.payload.scoreB;
-  document.getElementById("wicketsA").innerText = data.payload.wicketsA;
-  document.getElementById("wicketsB").innerText = data.payload.wicketsB;
+const battingName = data.payload.battingName;
+const bowlingName = data.payload.bowlingName;
 
-  document.getElementById("innings").innerText = data.payload.innings;
+document.getElementById("battingName").innerText = battingName;
+document.getElementById("bowlingName").innerText = bowlingName;
+
+if (battingName === document.getElementById("teamA").innerText) {
+
+  batterRuns = data.payload.scoreA;
+  batterWickets = data.payload.wicketsA;
+
+} else {
+
+  batterRuns = data.payload.scoreB;
+  batterWickets = data.payload.wicketsB;
+
+}
+
+document.getElementById("batterStats").innerText =
+  "(" + batterRuns + "-" + batterWickets + ")";
+
+let battingScore;
+let battingWickets;
+
+if (battingName === data.payload.battingName) {
+
+  if (battingName === document.getElementById("teamA").innerText) {
+    battingScore = data.payload.scoreA;
+    battingWickets = data.payload.wicketsA;
+  } else {
+    battingScore = data.payload.scoreB;
+    battingWickets = data.payload.wicketsB;
+  }
+
+}
+
+document.getElementById("mainScore").innerText =
+  battingScore + " / " + battingWickets;
+
+let balls = data.payload.balls;
+
+let over = Math.floor(balls / 6);
+let ball = balls % 6;
+
+document.getElementById("overDisplay").innerText =
+  over + "." + ball;
+
+document.getElementById("ballsLeftDisplay").innerText =
+  data.payload.ballsLeft;
+
+let crr = 0;
+
+if (balls > 0) {
+  crr = (battingScore * 6) / balls;
+}
+
+document.getElementById("crrDisplay").innerText =
+  crr.toFixed(2);
+
+if (data.payload.target) {
+
+  let target = data.payload.target;
+  document.getElementById("targetDisplay").innerText = target;
+
+  if (data.payload.innings === 2) {
+
+    let runsNeeded = target - battingScore;
+    let ballsLeft = data.payload.ballsLeft;
+
+    if (ballsLeft > 0) {
+
+      let rrr = (runsNeeded * 6) / ballsLeft;
+
+      document.getElementById("rrrDisplay").innerText =
+        rrr.toFixed(2);
+
+    }
+
+  }
+
+}
+
+let ballRun;
+
+if (data.payload.out) {
+  ballRun = "W";
+} else {
+  ballRun = data.payload.out ? "W" : data.payload.lastRuns;
+}
+
+let ballNumber = balls % 6;
+
+if (ballNumber === 1) {
+  lastBalls = [];
+}
+
+lastBalls.push(ballRun);
+
+const boxes = document.querySelectorAll(".ballBox");
+
+boxes.forEach((box, i) => {
+  box.innerText = lastBalls[i] || "-";
+});
+
+  document.getElementById("inningsDisplay").innerText = data.payload.innings;
 
   if (data.payload.target) {
-    document.getElementById("target").innerText = data.payload.target;
+    document.getElementById("targetDisplay").innerText = data.payload.target;
   }
 
   if (data.payload.out) {
