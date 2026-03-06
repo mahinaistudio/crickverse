@@ -59,3 +59,80 @@ button {
 .joinSection {
     margin-top: 20px;
 }
+
+#scoreboardCard{
+  position:fixed;
+  top:10px;
+  left:50%;
+  transform:translateX(-50%);
+  width:95%;
+  max-width:900px;
+
+background: #121212;
+  color: white;
+  padding: 15px;
+  border-radius:16px;
+
+
+  box-shadow:0 6px 20px rgba(0,0,0,0.2);
+
+  font-family:sans-serif;
+}
+
+.scoreRow1{
+  display:flex;
+  justify-content:space-between;
+  font-size:14px;
+  margin-bottom:5px;
+}
+
+.scoreRow2{
+  display:flex;
+  justify-content:space-between;
+  font-weight:bold;
+  margin-bottom:8px;
+}
+
+.scoreRow3{
+  text-align:center;
+  font-size:28px;
+  font-weight:bold;
+  margin-bottom:10px;
+}
+
+.scoreRow4{
+  display:flex;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  font-size:14px;
+  margin-bottom:10px;
+}
+
+.scoreItem{
+  margin-right:10px;
+  font-weight:600;
+}
+
+.scoreRow5{
+  display:flex;
+  justify-content:center;
+  gap:6px;
+}
+
+.ballBox{
+  width:30px;
+  height:30px;
+  border-radius:6px;
+  background:#eeeeee;
+color: #121212;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:bold;
+}
+
+#scoreboardCard{
+display:flex;
+flex-direction:column;
+gap:8px;
+}
