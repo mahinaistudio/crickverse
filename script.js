@@ -302,21 +302,18 @@ document.getElementById("crrDisplay").innerText =
 if (data.payload.target) {
 
   let target = data.payload.target;
+  let ballsLeft = data.payload.ballsLeft;
+
   document.getElementById("targetDisplay").innerText = target;
 
-  if (data.payload.innings === 2) {
+  if (ballsLeft > 0) {
 
-    let runsNeeded = target - battingScore;
-    let ballsLeft = data.payload.ballsLeft;
+    let runsNeeded = Math.max(target - battingScore, 0);
 
-    if (ballsLeft > 0) {
+    let rrr = runsNeeded / ballsLeft;
 
-      let rrr = (runsNeeded * 6) / ballsLeft;
-
-      document.getElementById("rrrDisplay").innerText =
-        rrr.toFixed(2);
-
-    }
+    document.getElementById("rrrDisplay").innerText =
+      rrr.toFixed(2);
 
   }
 
