@@ -42,19 +42,65 @@
 <div id="lobbyScreen" class="screen">
     <h2>Waiting Lobby</h2>
     <p>Room Code: <span id="lobbyRoomCode"></span></p>
-    <p>Team A: <span id="teamA">Empty</span></p>
-    <p>Team B: <span id="teamB">Empty</span></p>
+    <p>Team A: <span id="teamA">Waiting...</span></p>
+<p>Team B: <span id="teamB">Waiting...</span></p>
     <button onclick="startMatch()">Start Match</button>
 </div>
 
 <div id="gameScreen" class="screen">
-    <h2>Hand Cricket Match</h2>
+    <div id="scoreboardCard">
 
-<p>Score A: <span id="scoreA">0</span> | Wickets: <span id="wicketsA">0</span></p>
-<p>Score B: <span id="scoreB">0</span> | Wickets: <span id="wicketsB">0</span></p>
+  <div class="scoreRow1">
+    <span id="modeDisplay">Single • Limited</span>
+    <span id="inningsDisplay">Innings: 1</span>
+  </div>
 
-<p>Innings: <span id="innings">1</span></p>
-<p>Target: <span id="target">-</span></p>
+  <div class="scoreRow2">
+    <span id="bowlingName">Bowling: -</span>
+<span id="battingName">Batting: -</span>
+<span id="batterStats"></span>
+  </div>
+
+  <div class="scoreRow3">
+    <span id="mainScore">0 / 0</span>
+  </div>
+
+  <div class="scoreRow4">
+
+    <div class="scoreItem">
+      Over: <span id="overDisplay">0.0</span>
+    </div>
+
+    <div class="scoreItem">
+      Target: <span id="targetDisplay">-</span>
+    </div>
+
+    <div class="scoreItem">
+      Balls Left: <span id="ballsLeftDisplay">-</span>
+    </div>
+
+    <div class="scoreItem">
+      CRR: <span id="crrDisplay">0</span>
+    </div>
+
+    <div class="scoreItem">
+      RRR: <span id="rrrDisplay">-</span>
+    </div>
+
+  </div>
+
+  <div class="scoreRow5" id="ballHistory">
+
+    <div class="ballBox">-</div>
+    <div class="ballBox">-</div>
+    <div class="ballBox">-</div>
+    <div class="ballBox">-</div>
+    <div class="ballBox">-</div>
+    <div class="ballBox">-</div>
+
+  </div>
+
+</div>
 
 <hr>
 
