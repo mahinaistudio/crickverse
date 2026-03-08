@@ -9,6 +9,8 @@
 
 <body>
 
+<button id="themeToggle" onclick="toggleTheme()">🌙</button>
+
 <div id="nameScreen" class="screen active">
     <h1>Virtual Hand Cricket</h1>
     <input type="text" id="playerNameInput" placeholder="Enter Your Name">
@@ -40,11 +42,32 @@
 </div>
 
 <div id="lobbyScreen" class="screen">
-    <h2>Waiting Lobby</h2>
-    <p>Room Code: <span id="lobbyRoomCode"></span></p>
-    <p>Team A: <span id="teamA">Waiting...</span></p>
-<p>Team B: <span id="teamB">Waiting...</span></p>
-    <button onclick="startMatch()">Start Match</button>
+
+<h2>Match Lobby</h2>
+
+<div class="lobbyCard">
+
+<div class="roomCodeBox">
+Room Code: <span id="lobbyRoomCode"></span>
+<button onclick="copyRoomCode()">Copy</button>
+</div>
+
+<div class="teamRow">
+<div class="teamBox">
+<h3>Player 1</h3>
+<p id="teamA">Waiting...</p>
+</div>
+
+<div class="teamBox">
+<h3>Player 2</h3>
+<p id="teamB">Waiting...</p>
+</div>
+</div>
+
+<button onclick="startMatch()">Start Match</button>
+
+</div>
+
 </div>
 
 <div id="gameScreen" class="screen">
@@ -79,9 +102,9 @@
       Balls Left: <span id="ballsLeftDisplay">-</span>
     </div>
 
-    <div class="scoreItem">
-      CRR: <span id="crrDisplay">0</span>
-    </div>
+<div class="scoreItem">
+  Runs Left: <span id="runsLeftDisplay">-</span>
+</div>
 
     <div class="scoreItem">
       RRR: <span id="rrrDisplay">-</span>
@@ -107,11 +130,11 @@
 <h3>Select Fingers</h3>
 
 <div id="fingerButtons">
-  <button onclick="toggleFinger('thumb')">Thumb</button>
-  <button onclick="toggleFinger('index')">Index</button>
-  <button onclick="toggleFinger('middle')">Middle</button>
-  <button onclick="toggleFinger('ring')">Ring</button>
-  <button onclick="toggleFinger('pinky')">Pinky</button>
+<button class="fingerBtn" onclick="toggleFinger('thumb', this)">Thumb</button>
+<button class="fingerBtn" onclick="toggleFinger('index', this)">Index</button>
+<button class="fingerBtn" onclick="toggleFinger('middle', this)">Middle</button>
+<button class="fingerBtn" onclick="toggleFinger('ring', this)">Ring</button>
+<button class="fingerBtn" onclick="toggleFinger('pinky', this)">Pinky</button>
 </div>
 
 <p>Selected: <span id="selectedDisplay">None</span></p>
@@ -142,6 +165,16 @@
     </div>
 
     <p id="decisionWaiting">Waiting for opponent to choose...</p>
+</div>
+
+<div id="resultScreen" class="screen">
+
+<h2 id="resultTitle">Result</h2>
+
+<p id="resultText"></p>
+
+<button onclick="continueGame()">Continue</button>
+
 </div>
 
 <script src="script.js"></script>
