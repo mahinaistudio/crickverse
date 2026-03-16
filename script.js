@@ -7,6 +7,10 @@ let playerName = "";
 let roomCode = "";
 let isHost = false;
 let gameMode = "limited";
+let previewCountdownTimer = null;
+let matchWickets = 0; // Store wickets limit
+let isTossing = false;
+let isSpectator = false;
 
 // Game state tracked on frontend
 let mySlot = null;         // "A" or "B"
@@ -37,6 +41,70 @@ function goToMode() {
   if (!nameInput) { alert("Enter your name first!"); return; }
   playerName = nameInput;
   showScreen("modeScreen");
+}
+
+function spectateRoom() {
+  const code = document.getElementById("joinRoomCodeInput").value.trim();
+  if (!code) { alert("Enter room code!"); return; }
+  roomCode = code;
+  isHost = false;
+  isSpectator = true;
+  connectToServer(code, null, null, true);
+  showScreen("lobbyScreen");
+}
+
+function startPreviewCountdown() {
+  let secs = 5;
+  document.getElementById("previewCountdownNum").innerText = secs;
+
+  if (previewCountdownTimer) clearInterval(previewCountdownTimer);
+
+  previewCountdownTimer = setInterval(() => {
+    secs--;
+    document.getElementById("previewCountdownNum").innerText = secs;
+    if (secs <= 0) {
+      clearInterval(previewCountdownTimer);
+      previewCountdownTimer = null;
+      startFromPreview();
+    }
+  }, 1000);
+}
+
+function skipPreview() {
+  if (previewCountdownTimer) {
+    clearInterval(previewCountdownTimer);
+    previewCountdownTimer = null;
+  }
+  startFromPreview();
+}
+
+function startFromPreview() {
+  lastBalls = [];
+  selectedFingers = [];
+  document.querySelectorAll(".finger").forEach(f => f.classList.remove("open"));
+  document.getElementById("selectedDisplay").innerText = "None";
+  
+  document.getElementById("mainScore").innerText = "0 / 0";
+  document.getElementById("overDisplay").innerText = "0.0";
+  document.getElementById("ballsLeftDisplay").innerText =
+    matchMode === "limited" ? (matchOvers * 6) : "-";
+  document.getElementById("runsLeftDisplay").innerText = "-";
+  document.getElementById("rrrDisplay").innerText = "-";
+  document.getElementById("inningsDisplay").innerText = "Innings: 1";
+  document.getElementById("ballMessage").innerText = "";
+  document.querySelectorAll(".ballBox").forEach(b => b.innerText = "-");
+  window.handLocked = false;
+  
+  // Hide controls for spectators
+  if (isSpectator) {
+    document.querySelector(".handContainer").style.display = "none";
+    document.querySelector(".btnLock").style.display = "none";
+    document.querySelector(".controlLabel").style.display = "none";
+    document.querySelector(".selectedLabel").style.display = "none";
+    document.getElementById("ballMessage").innerText = "Watching the match...";
+  }
+  
+  showScreen("gameScreen");
 }
 
 function goToRoomSetup() {
@@ -134,11 +202,47 @@ function toggleTheme() {
 }
 
 function sendToss(choice) {
+  if (isTossing) return; // Prevent multiple tosses
+  
   socket.send(JSON.stringify({
     type: "TOSS_CHOICE",
-    player: isHost ? "A" : "B",
+    player: mySlot,
     choice
   }));
+  
+  // If not passing, prepare for animation
+  if (choice !== "pass") {
+    isTossing = true;
+    document.getElementById("tossButtons").style.display = "none";
+    document.getElementById("tossMessage").innerText = "Flipping coin...";
+  }
+}
+
+function animateCoinFlip(result) {
+  const coin = document.getElementById("coin");
+  const message = document.getElementById("tossMessage");
+  
+  // Reset any previous animation
+  coin.classList.remove("flip-heads", "flip-tails");
+  
+  // Trigger reflow to restart animation
+  void coin.offsetWidth;
+  
+  // Start flip animation
+  if (result === "head") {
+    coin.classList.add("flip-heads");
+  } else {
+    coin.classList.add("flip-tails");
+  }
+  
+  // Update message during flip
+  message.innerText = "Coin is in the air...";
+  
+  // Show result after animation (2s)
+  setTimeout(() => {
+    message.innerText = result === "head" ? "It's HEADS! 🟡" : "It's TAILS! 🔵";
+    isTossing = false;
+  }, 2000);
 }
 
 function sendDecision(choice) {
@@ -149,37 +253,69 @@ function sendDecision(choice) {
   }));
 }
 
-function toggleFinger(finger, btn) {
+function toggleHandFinger(finger) {
+  if (window.handLocked) return;
+  
+  const fingerElement = document.getElementById(finger);
+  
   if (selectedFingers.includes(finger)) {
+    // Close finger
     selectedFingers = selectedFingers.filter(f => f !== finger);
-    btn.classList.remove("selected");
+    fingerElement.classList.remove("open");
   } else {
+    // Open finger
     selectedFingers.push(finger);
-    btn.classList.add("selected");
+    fingerElement.classList.add("open");
   }
-  document.getElementById("selectedDisplay").innerText =
-    selectedFingers.length > 0 ? selectedFingers.join(", ") : "None";
+  
+  // Update display
+  const fingerNames = {
+    thumb: "👍 Thumb",
+    index: "☝️ Index", 
+    middle: "🖕 Middle",
+    ring: "💍 Ring",
+    pinky: "🤙 Pinky"
+  };
+  
+  const displayText = selectedFingers.length > 0 
+    ? selectedFingers.map(f => fingerNames[f]).join(", ")
+    : "None";
+  
+  document.getElementById("selectedDisplay").innerText = displayText;
 }
 
 function lockHand() {
-  if (selectedFingers.length === 0) { alert("Select at least one finger!"); return; }
+  if (selectedFingers.length === 0) { 
+    alert("Select at least one finger!"); 
+    return; 
+  }
   if (window.handLocked) return;
+  
   window.handLocked = true;
-
+  
+  // Send selections
   socket.send(JSON.stringify({
     type: "HAND_SELECT",
-    player: isHost ? "A" : "B",
+    player: mySlot,
     fingers: selectedFingers
   }));
 
   socket.send(JSON.stringify({
     type: "HAND_LOCK",
-    player: isHost ? "A" : "B"
+    player: mySlot
   }));
-
-  selectedFingers = [];
-  document.querySelectorAll(".fingerBtn").forEach(btn => btn.classList.remove("selected"));
-  document.getElementById("selectedDisplay").innerText = "Locked! Waiting for opponent...";
+  
+  // Animate hand closing
+  const hand = document.querySelector(".hand");
+  hand.classList.add("locking");
+  
+  setTimeout(() => {
+    // Close all fingers visually
+    document.querySelectorAll(".finger").forEach(f => f.classList.remove("open"));
+    hand.classList.remove("locking");
+  }, 400);
+  
+  document.getElementById("selectedDisplay").innerText = "🔒 Locked! Waiting...";
 }
 
 // ─── Scoreboard helpers ───────────────────────────────────────────
@@ -300,8 +436,11 @@ function skipBreak() {
 }
 
 function goToInnings2() {
-  // Reset game screen for innings 2
   lastBalls = [];
+  selectedFingers = [];
+  document.querySelectorAll(".finger").forEach(f => f.classList.remove("open"));
+  document.getElementById("selectedDisplay").innerText = "None";
+  
   document.getElementById("mainScore").innerText = "0 / 0";
   document.getElementById("overDisplay").innerText = "0.0";
   document.getElementById("ballsLeftDisplay").innerText =
@@ -312,6 +451,16 @@ function goToInnings2() {
   document.getElementById("ballMessage").innerText = "";
   document.querySelectorAll(".ballBox").forEach(b => b.innerText = "-");
   window.handLocked = false;
+  
+  // Hide controls for spectators
+  if (isSpectator) {
+    document.querySelector(".handContainer").style.display = "none";
+    document.querySelector(".btnLock").style.display = "none";
+    document.querySelector(".controlLabel").style.display = "none";
+    document.querySelector(".selectedLabel").style.display = "none";
+    document.getElementById("ballMessage").innerText = "Watching the match...";
+  }
+  
   showScreen("gameScreen");
 }
 
@@ -341,7 +490,7 @@ function showBallMessage(out, lastRuns) {
 
 // ─── Server connection ────────────────────────────────────────────
 
-function connectToServer(code, overs, wickets) {
+function connectToServer(code, overs, wickets, spectate = false) {
 
   socket = new WebSocket(
     "wss://handcricket-server.mahin-aistudio.workers.dev/" + code
@@ -350,7 +499,13 @@ function connectToServer(code, overs, wickets) {
   socket.onopen = () => {
     socket.send(JSON.stringify({
       type: "JOIN_ROOM",
-      payload: { playerName, overs, wickets, mode: gameMode }
+      payload: { 
+        playerName, 
+        overs, 
+        wickets, 
+        mode: gameMode,
+        spectate // Add this
+      }
     }));
   };
 
@@ -363,6 +518,19 @@ function connectToServer(code, overs, wickets) {
       roomCode = data.payload.roomCode;
       mySlot = data.payload.slot;
       document.getElementById("lobbyRoomCode").innerText = roomCode;
+      
+      // Show spectator badge if spectating
+      if (mySlot === "SPECTATOR") {
+        isSpectator = true;
+        const badge = document.createElement("div");
+        badge.className = "spectatorBadge active";
+        badge.innerText = "👁️ Spectating";
+        badge.id = "spectatorBadge";
+        document.body.appendChild(badge);
+        
+        // Hide start button for spectators
+        document.getElementById("startMatchBtn").style.display = "none";
+      }
     }
 
     // ── LOBBY_UPDATE ──
@@ -370,50 +538,79 @@ function connectToServer(code, overs, wickets) {
       document.getElementById("lobbyRoomCode").innerText = roomCode;
       document.getElementById("teamA").innerText = data.payload.teamA || "Empty";
       document.getElementById("teamB").innerText = data.payload.teamB || "Empty";
+      
+      // Update spectator count
+      if (data.payload.spectatorCount !== undefined) {
+        document.getElementById("spectatorCount").innerText = data.payload.spectatorCount;
+      }
     }
 
     // ── TOSS_CALLER ──
     if (data.type === "TOSS_CALLER") {
       showScreen("tossScreen");
-      const iAmCaller =
-        (isHost && data.payload.caller === "A") ||
-        (!isHost && data.payload.caller === "B");
-      document.getElementById("tossButtons").style.display = iAmCaller ? "flex" : "none";
-      document.getElementById("tossWaiting").style.display = iAmCaller ? "none" : "block";
+      
+      const coin = document.getElementById("coin");
+      coin.classList.remove("flip-heads", "flip-tails");
+      isTossing = false;
+      
+      const iAmCaller = data.payload.caller === mySlot;
+      
+      // Hide buttons for spectators
+      if (isSpectator) {
+        document.getElementById("tossButtons").style.display = "none";
+        document.getElementById("tossWaiting").style.display = "block";
+        document.getElementById("tossMessage").innerText = "Waiting for toss...";
+      } else {
+        document.getElementById("tossButtons").style.display = iAmCaller ? "flex" : "none";
+        document.getElementById("tossWaiting").style.display = iAmCaller ? "none" : "block";
+        document.getElementById("tossMessage").innerText = iAmCaller 
+          ? "Make your call!" 
+          : "Opponent is calling...";
+      }
     }
 
     // ── TOSS_RESULT ──
-    if (data.type === "TOSS_RESULT") {
-      const teamAName = document.getElementById("teamA").innerText;
-      const teamBName = document.getElementById("teamB").innerText;
+   if (data.type === "TOSS_RESULT") {
+  // Animate the coin flip
+  animateCoinFlip(data.payload.coin);
+  
+  // Wait for animation to complete, then show decision screen
+  setTimeout(() => {
+    const teamAName = document.getElementById("teamA").innerText;
+    const teamBName = document.getElementById("teamB").innerText;
 
-      showScreen("decisionScreen");
+    showScreen("decisionScreen");
 
-      // Show toss result inline instead of alert
-      document.getElementById("decisionWaiting").innerText =
-        "🪙 " + data.payload.coin.toUpperCase() + " — " + data.payload.winner + " won the toss!";
+    // Show toss result
+    document.getElementById("decisionWaiting").innerText =
+      "🪙 " + data.payload.coin.toUpperCase() + " — " + data.payload.winner + " won the toss!";
 
-      const amIWinner =
-        (isHost && data.payload.winner === teamAName) ||
-        (!isHost && data.payload.winner === teamBName);
+    const amIWinner =
+      (mySlot === "A" && data.payload.winner === teamAName) ||
+      (mySlot === "B" && data.payload.winner === teamBName);
 
-      document.getElementById("decisionButtons").style.display = amIWinner ? "flex" : "none";
-      document.getElementById("decisionWaiting").style.display = "block";
-    }
+    document.getElementById("decisionButtons").style.display = amIWinner ? "flex" : "none";
+    document.getElementById("decisionWaiting").style.display = "block";
+  }, 2500); // Extra 500ms after animation to read result
+}
 
-    // ── MATCH_DECISION ──
+    // ── MATCH_DECISION ── (update to hide buttons for spectators)
     if (data.type === "MATCH_DECISION") {
-      // Store mode from server so scoreboard is accurate
       matchMode = data.payload.mode;
       matchOvers = data.payload.overs || 0;
-
+      matchWickets = data.payload.wicketsLimit || 0;
       currentBattingName = data.payload.batting;
       currentBowlingName = data.payload.bowling;
 
-      // Reset ball history for fresh innings
-      lastBalls = [];
+      document.getElementById("previewBattingName").innerText = data.payload.batting;
+      document.getElementById("previewBowlingName").innerText = data.payload.bowling;
+      document.getElementById("previewMode").innerText = 
+        matchMode === "limited" ? "Limited" : "Unlimited";
+      document.getElementById("previewOvers").innerText = 
+        matchMode === "limited" ? matchOvers : "∞";
+      document.getElementById("previewWickets").innerText = matchWickets;
 
-      // Reset scoreboard to zero state
+      lastBalls = [];
       document.getElementById("mainScore").innerText = "0 / 0";
       document.getElementById("overDisplay").innerText = "0.0";
       document.getElementById("targetDisplay").innerText = "-";
@@ -427,16 +624,18 @@ function connectToServer(code, overs, wickets) {
       document.getElementById("modeDisplay").innerText =
         "Single • " + (matchMode === "limited" ? "Limited" : "Unlimited");
       document.getElementById("ballMessage").innerText = "";
-
-      // Reset ball boxes
       document.querySelectorAll(".ballBox").forEach(b => b.innerText = "-");
 
-      showScreen("gameScreen");
+      showScreen("matchPreviewScreen");
+      startPreviewCountdown();
     }
 
     // ── BALL_RESULT ──
     if (data.type === "BALL_RESULT") {
       window.handLocked = false;
+selectedFingers = [];
+document.querySelectorAll(".finger").forEach(f => f.classList.remove("open"));
+document.getElementById("selectedDisplay").innerText = "None";
 
       updateScoreboard(data.payload);
       updateBallHistory(data.payload.balls, data.payload.out, data.payload.lastRuns);
@@ -481,10 +680,18 @@ if (data.type === "INNINGS_BREAK") {
   startBreakCountdown();
 }
 
-    // ── ROOM_FULL ──
+    // ── ROOM_FULL ── (update to suggest spectating)
     if (data.type === "ROOM_FULL") {
-      alert("Room is full!");
-      showScreen("modeScreen");
+      if (data.payload && data.payload.canSpectate) {
+        if (confirm("Room is full! Would you like to spectate instead?")) {
+          spectateRoom();
+        } else {
+          showScreen("modeScreen");
+        }
+      } else {
+        alert("Room is full!");
+        showScreen("modeScreen");
+      }
     }
   };
 }
