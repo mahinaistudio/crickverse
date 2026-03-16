@@ -1,183 +1,197 @@
+<!-- index.html — full replace -->
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Virtual Hand Cricket</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="style.css">
+  <title>Virtual Hand Cricket</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
-
 <body>
 
 <button id="themeToggle" onclick="toggleTheme()">🌙</button>
 
+<!-- NAME SCREEN -->
 <div id="nameScreen" class="screen active">
+  <div class="centerCard">
+    <div class="appLogo">🏏</div>
     <h1>Virtual Hand Cricket</h1>
-    <input type="text" id="playerNameInput" placeholder="Enter Your Name">
-    <button onclick="goToMode()">Enter</button>
+    <input type="text" id="playerNameInput" placeholder="Enter your name" maxlength="20">
+    <button class="btnPrimary" onclick="goToMode()">Enter →</button>
+  </div>
 </div>
 
+<!-- MODE SCREEN -->
 <div id="modeScreen" class="screen">
-    <h2>Mode Selection</h2>
-    <button onclick="goToRoomSetup()">Create Room</button>
-
-    <div class="joinSection">
-        <input type="text" id="joinRoomCodeInput" placeholder="Enter Room Code">
-        <button onclick="joinRoom()">Join Room</button>
-    </div>
+  <div class="centerCard">
+    <h2>Play</h2>
+    <button class="btnPrimary fullWidth" onclick="goToRoomSetup()">🎮 Create Room</button>
+    <div class="divider">or</div>
+    <input type="text" id="joinRoomCodeInput" placeholder="Enter Room Code">
+    <button class="btnSecondary fullWidth" onclick="joinRoom()">Join Room</button>
+  </div>
 </div>
 
+<!-- ROOM SETUP SCREEN -->
 <div id="roomSetupScreen" class="screen">
+  <div class="centerCard">
     <h2>Create Room</h2>
 
-<div>
-<button onclick="setMode('limited')" id="limitedBtn">Limited</button>
-<button onclick="setMode('unlimited')" id="unlimitedBtn">Unlimited</button>
+    <div class="modeToggle">
+      <button id="limitedBtn" class="modeBtn active" onclick="setMode('limited')">Limited</button>
+      <button id="unlimitedBtn" class="modeBtn" onclick="setMode('unlimited')">Unlimited</button>
+    </div>
+
+    <input type="number" id="oversInput" placeholder="Overs" min="1">
+    <input type="number" id="wicketsInput" placeholder="Wickets" min="1">
+    <input type="text" id="createRoomCodeInput" placeholder="Room Code" maxlength="12">
+    <button class="btnPrimary fullWidth" onclick="createRoom()">Create Room →</button>
+  </div>
 </div>
 
-    <input type="number" id="oversInput" placeholder="Overs">
-    <input type="number" id="wicketsInput" placeholder="Wickets">
-    <input type="text" id="createRoomCodeInput" placeholder="Room Code">
-    <button onclick="createRoom()">Create</button>
-</div>
-
+<!-- LOBBY SCREEN -->
 <div id="lobbyScreen" class="screen">
+  <h2>Match Lobby</h2>
+  <div class="lobbyCard">
 
-<h2>Match Lobby</h2>
-
-<div class="lobbyCard">
-
-<div class="roomCodeBox">
-Room Code: <span id="lobbyRoomCode"></span>
-<button onclick="copyRoomCode()">Copy</button>
-</div>
-
-<div class="teamRow">
-<div class="teamBox">
-<h3>Player 1</h3>
-<p id="teamA">Waiting...</p>
-</div>
-
-<div class="teamBox">
-<h3>Player 2</h3>
-<p id="teamB">Waiting...</p>
-</div>
-</div>
-
-<button onclick="startMatch()">Start Match</button>
-
-</div>
-
-</div>
-
-<div id="gameScreen" class="screen">
-    <div id="scoreboardCard">
-
-  <div class="scoreRow1">
-    <span id="modeDisplay">Single • Limited</span>
-    <span id="inningsDisplay">Innings: 1</span>
-  </div>
-
-  <div class="scoreRow2">
-    <span id="bowlingName">Bowling: -</span>
-<span id="battingName">Batting: -</span>
-<span id="batterStats"></span>
-  </div>
-
-  <div class="scoreRow3">
-    <span id="mainScore">0 / 0</span>
-  </div>
-
-  <div class="scoreRow4">
-
-    <div class="scoreItem">
-      Over: <span id="overDisplay">0.0</span>
+    <div class="roomCodeBox">
+      Room Code: <span id="lobbyRoomCode"></span>
+      <button class="btnSmall" onclick="copyRoomCode()">Copy</button>
     </div>
 
-    <div class="scoreItem">
-      Target: <span id="targetDisplay">-</span>
+    <div class="teamRow">
+      <div class="teamBox">
+        <p class="teamLabel">Player 1</p>
+        <p class="teamName" id="teamA">Waiting...</p>
+      </div>
+      <div class="vsDot">VS</div>
+      <div class="teamBox">
+        <p class="teamLabel">Player 2</p>
+        <p class="teamName" id="teamB">Waiting...</p>
+      </div>
     </div>
 
-    <div class="scoreItem">
-      Balls Left: <span id="ballsLeftDisplay">-</span>
-    </div>
-
-<div class="scoreItem">
-  Runs Left: <span id="runsLeftDisplay">-</span>
-</div>
-
-    <div class="scoreItem">
-      RRR: <span id="rrrDisplay">-</span>
-    </div>
-
+    <button class="btnPrimary fullWidth" onclick="startMatch()">Start Match</button>
   </div>
-
-  <div class="scoreRow5" id="ballHistory">
-
-    <div class="ballBox">-</div>
-    <div class="ballBox">-</div>
-    <div class="ballBox">-</div>
-    <div class="ballBox">-</div>
-    <div class="ballBox">-</div>
-    <div class="ballBox">-</div>
-
-  </div>
-
 </div>
 
-<hr>
-
-<h3>Select Fingers</h3>
-
-<div id="fingerButtons">
-<button class="fingerBtn" onclick="toggleFinger('thumb', this)">Thumb</button>
-<button class="fingerBtn" onclick="toggleFinger('index', this)">Index</button>
-<button class="fingerBtn" onclick="toggleFinger('middle', this)">Middle</button>
-<button class="fingerBtn" onclick="toggleFinger('ring', this)">Ring</button>
-<button class="fingerBtn" onclick="toggleFinger('pinky', this)">Pinky</button>
-</div>
-
-<p>Selected: <span id="selectedDisplay">None</span></p>
-
-<button onclick="lockHand()">LOCK</button>
-
-<p id="ballMessage"></p>
-</div>
-
+<!-- TOSS SCREEN -->
 <div id="tossScreen" class="screen">
+  <div class="centerCard">
+    <div class="appLogo">🪙</div>
     <h2>Toss</h2>
-
-    <div id="tossButtons">
-        <button onclick="sendToss('head')">Head</button>
-        <button onclick="sendToss('tail')">Tail</button>
-        <button onclick="sendToss('pass')">Pass</button>
+    <div id="tossButtons" class="btnRow">
+      <button class="btnPrimary" onclick="sendToss('head')">Heads</button>
+      <button class="btnPrimary" onclick="sendToss('tail')">Tails</button>
+      <button class="btnSecondary" onclick="sendToss('pass')">Pass</button>
     </div>
-
-    <p id="tossWaiting">Waiting for toss decision...</p>
+    <p id="tossWaiting" class="waitingText">Waiting for toss...</p>
+  </div>
 </div>
 
+<!-- DECISION SCREEN -->
 <div id="decisionScreen" class="screen">
-    <h2>Choose Bat or Bowl</h2>
-
-    <div id="decisionButtons">
-        <button onclick="sendDecision('bat')">Bat</button>
-        <button onclick="sendDecision('bowl')">Bowl</button>
+  <div class="centerCard">
+    <div class="appLogo">🏏</div>
+    <h2>Choose</h2>
+    <p id="decisionWaiting" class="waitingText"></p>
+    <div id="decisionButtons" class="btnRow">
+      <button class="btnPrimary" onclick="sendDecision('bat')">🏏 Bat</button>
+      <button class="btnSecondary" onclick="sendDecision('bowl')">🎳 Bowl</button>
     </div>
-
-    <p id="decisionWaiting">Waiting for opponent to choose...</p>
+  </div>
 </div>
 
+<!-- GAME SCREEN -->
+<div id="gameScreen" class="screen gameScreenLayout">
+
+  <div id="scoreboardCard">
+    <div class="scoreRow1">
+      <span id="modeDisplay">Single • Limited</span>
+      <span id="inningsDisplay">Innings: 1</span>
+    </div>
+    <div class="scoreRow2">
+      <span id="bowlingName">Bowl: —</span>
+      <span id="battingName">Bat: —</span>
+      <span id="batterStats"></span>
+    </div>
+    <div class="scoreRow3">
+      <span id="mainScore">0 / 0</span>
+    </div>
+    <div class="scoreRow4">
+      <div class="scoreItem">Over: <span id="overDisplay">0.0</span></div>
+      <div class="scoreItem">Target: <span id="targetDisplay">—</span></div>
+      <div class="scoreItem">Balls Left: <span id="ballsLeftDisplay">—</span></div>
+      <div class="scoreItem">Runs Left: <span id="runsLeftDisplay">—</span></div>
+      <div class="scoreItem">RRR: <span id="rrrDisplay">—</span></div>
+    </div>
+    <div class="scoreRow5" id="ballHistory">
+      <div class="ballBox">-</div>
+      <div class="ballBox">-</div>
+      <div class="ballBox">-</div>
+      <div class="ballBox">-</div>
+      <div class="ballBox">-</div>
+      <div class="ballBox">-</div>
+    </div>
+  </div>
+
+  <div class="gameControls">
+    <p id="ballMessage" class="ballMessage"></p>
+    <p class="controlLabel">Select Fingers</p>
+    <div id="fingerButtons">
+      <button class="fingerBtn" onclick="toggleFinger('thumb', this)">👍 Thumb</button>
+      <button class="fingerBtn" onclick="toggleFinger('index', this)">☝️ Index</button>
+      <button class="fingerBtn" onclick="toggleFinger('middle', this)">🖕 Middle</button>
+      <button class="fingerBtn" onclick="toggleFinger('ring', this)">💍 Ring</button>
+      <button class="fingerBtn" onclick="toggleFinger('pinky', this)">🤙 Pinky</button>
+    </div>
+    <p class="selectedLabel">Selected: <span id="selectedDisplay">None</span></p>
+    <button class="btnLock" onclick="lockHand()">🔒 LOCK</button>
+  </div>
+
+</div>
+
+<!-- INNINGS BREAK SCREEN -->
+<div id="inningsBreakScreen" class="screen">
+  <div class="breakCard">
+    <div class="breakBadge">⚡ Innings Break</div>
+
+    <div class="breakInnings1">
+      <p class="breakLabel">1st Innings</p>
+      <p class="breakTeamName" id="breakBattedName">—</p>
+      <p class="breakScore" id="breakScore1">0 / 0</p>
+    </div>
+
+    <div class="breakArrow">▼</div>
+
+    <div class="breakTarget">
+      <p class="breakLabel">Target</p>
+      <p class="breakTargetNum" id="breakTarget">—</p>
+    </div>
+
+    <div class="breakInnings2">
+      <p class="breakLabel">Now Batting</p>
+      <p class="breakTeamName" id="breakBattingNext">—</p>
+      <p class="breakSubtext" id="breakModeInfo">—</p>
+    </div>
+
+    <div class="breakCountdown">Starting in <span id="breakCountdownNum">5</span>s</div>
+    <button class="btnPrimary" onclick="skipBreak()">Start Innings 2 →</button>
+  </div>
+</div>
+
+<!-- RESULT SCREEN -->
 <div id="resultScreen" class="screen">
-
-<h2 id="resultTitle">Result</h2>
-
-<p id="resultText"></p>
-
-<button onclick="continueGame()">Continue</button>
-
+  <div class="centerCard">
+    <div class="appLogo" id="resultEmoji">🏆</div>
+    <h2 id="resultTitle">Result</h2>
+    <p id="resultText" class="resultText"></p>
+    <button class="btnPrimary fullWidth" onclick="continueGame()">Continue →</button>
+  </div>
 </div>
 
 <script src="script.js"></script>
-
 </body>
 </html>
