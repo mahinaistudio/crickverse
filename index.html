@@ -30,7 +30,10 @@
     <button class="btnPrimary fullWidth" onclick="goToRoomSetup()">🎮 Create Room</button>
     <div class="divider">or</div>
     <input type="text" id="joinRoomCodeInput" placeholder="Enter Room Code">
-    <button class="btnSecondary fullWidth" onclick="joinRoom()">Join Room</button>
+    <div class="btnRow">
+      <button class="btnPrimary" onclick="joinRoom()">Join as Player</button>
+      <button class="btnSecondary" onclick="spectateRoom()">👁️ Spectate</button>
+    </div>
   </div>
 </div>
 
@@ -73,21 +76,37 @@
       </div>
     </div>
 
-    <button class="btnPrimary fullWidth" onclick="startMatch()">Start Match</button>
+    <div class="spectatorInfo" id="spectatorInfo">
+      <span>👁️ <span id="spectatorCount">0</span> watching</span>
+    </div>
+
+    <button class="btnPrimary fullWidth" id="startMatchBtn" onclick="startMatch()">Start Match</button>
   </div>
 </div>
+
+<!-- REPLACE the entire tossScreen div -->
 
 <!-- TOSS SCREEN -->
 <div id="tossScreen" class="screen">
   <div class="centerCard">
-    <div class="appLogo">🪙</div>
     <h2>Toss</h2>
+    
+    <!-- Coin container -->
+    <div class="coinContainer">
+      <div class="coin" id="coin">
+        <div class="coin-side heads">H</div>
+        <div class="coin-side tails">T</div>
+      </div>
+    </div>
+    
+    <p id="tossMessage" class="tossMessage">Make your call!</p>
+    
     <div id="tossButtons" class="btnRow">
       <button class="btnPrimary" onclick="sendToss('head')">Heads</button>
       <button class="btnPrimary" onclick="sendToss('tail')">Tails</button>
       <button class="btnSecondary" onclick="sendToss('pass')">Pass</button>
     </div>
-    <p id="tossWaiting" class="waitingText">Waiting for toss...</p>
+    <p id="tossWaiting" class="waitingText">Waiting for opponent's call...</p>
   </div>
 </div>
 
@@ -101,6 +120,45 @@
       <button class="btnPrimary" onclick="sendDecision('bat')">🏏 Bat</button>
       <button class="btnSecondary" onclick="sendDecision('bowl')">🎳 Bowl</button>
     </div>
+  </div>
+</div>
+
+<!-- Add this AFTER the decisionScreen div and BEFORE gameScreen -->
+
+<!-- MATCH PREVIEW SCREEN -->
+<div id="matchPreviewScreen" class="screen">
+  <div class="breakCard">
+    <div class="breakBadge">🏏 Match Preview</div>
+
+    <div class="breakInnings1">
+      <p class="breakLabel">Batting First</p>
+      <p class="breakTeamName" id="previewBattingName">—</p>
+    </div>
+
+    <div class="breakArrow">VS</div>
+
+    <div class="breakInnings2">
+      <p class="breakLabel">Bowling First</p>
+      <p class="breakTeamName" id="previewBowlingName">—</p>
+    </div>
+
+    <div class="matchInfoGrid">
+      <div class="matchInfoItem">
+        <p class="matchInfoLabel">Mode</p>
+        <p class="matchInfoValue" id="previewMode">—</p>
+      </div>
+      <div class="matchInfoItem">
+        <p class="matchInfoLabel">Overs</p>
+        <p class="matchInfoValue" id="previewOvers">—</p>
+      </div>
+      <div class="matchInfoItem">
+        <p class="matchInfoLabel">Wickets</p>
+        <p class="matchInfoValue" id="previewWickets">—</p>
+      </div>
+    </div>
+
+    <div class="breakCountdown">Starting in <span id="previewCountdownNum">5</span>s</div>
+    <button class="btnPrimary fullWidth" onclick="skipPreview()">Start Match →</button>
   </div>
 </div>
 
@@ -138,20 +196,65 @@
   </div>
 
   <div class="gameControls">
-    <p id="ballMessage" class="ballMessage"></p>
-    <p class="controlLabel">Select Fingers</p>
-    <div id="fingerButtons">
-      <button class="fingerBtn" onclick="toggleFinger('thumb', this)">👍 Thumb</button>
-      <button class="fingerBtn" onclick="toggleFinger('index', this)">☝️ Index</button>
-      <button class="fingerBtn" onclick="toggleFinger('middle', this)">🖕 Middle</button>
-      <button class="fingerBtn" onclick="toggleFinger('ring', this)">💍 Ring</button>
-      <button class="fingerBtn" onclick="toggleFinger('pinky', this)">🤙 Pinky</button>
-    </div>
-    <p class="selectedLabel">Selected: <span id="selectedDisplay">None</span></p>
-    <button class="btnLock" onclick="lockHand()">🔒 LOCK</button>
+  <p id="ballMessage" class="ballMessage"></p>
+  <p class="controlLabel">Click fingers to open them</p>
+  
+  <!-- SVG Hand -->
+  <div class="handContainer">
+    <svg class="hand" viewBox="0 0 300 400" xmlns="http://www.w3.org/2000/svg">
+      <!-- Palm -->
+      <ellipse cx="150" cy="280" rx="70" ry="90" fill="var(--hand-skin)" stroke="var(--hand-outline)" stroke-width="3"/>
+      
+      <!-- Thumb -->
+      <g id="thumb" class="finger" onclick="toggleHandFinger('thumb')">
+        <path class="finger-closed" d="M 80 250 Q 50 230 45 200 Q 40 170 50 150 L 70 155 Q 65 175 68 200 Q 72 225 90 240 Z" 
+              fill="var(--hand-skin)" stroke="var(--hand-outline)" stroke-width="3"/>
+        <path class="finger-open" d="M 80 250 Q 30 240 15 210 Q 0 180 5 140 L 25 145 Q 22 175 30 200 Q 40 230 90 240 Z" 
+              fill="var(--hand-skin)" stroke="var(--hand-outline)" stroke-width="3" opacity="0"/>
+      </g>
+      
+      <!-- Index -->
+      <g id="index" class="finger" onclick="toggleHandFinger('index')">
+        <path class="finger-closed" d="M 110 200 Q 105 160 108 120 Q 110 80 115 50 L 135 52 Q 132 85 130 120 Q 128 160 125 200 Z" 
+              fill="var(--hand-skin)" stroke="var(--hand-outline)" stroke-width="3"/>
+        <path class="finger-open" d="M 110 200 Q 105 140 108 90 Q 110 40 115 10 L 135 12 Q 132 45 130 90 Q 128 140 125 200 Z" 
+              fill="var(--hand-skin)" stroke="var(--hand-outline)" stroke-width="3" opacity="0"/>
+      </g>
+      
+      <!-- Middle -->
+      <g id="middle" class="finger" onclick="toggleHandFinger('middle')">
+        <path class="finger-closed" d="M 140 200 Q 138 155 140 110 Q 142 65 145 30 L 165 32 Q 162 70 160 110 Q 158 155 157 200 Z" 
+              fill="var(--hand-skin)" stroke="var(--hand-outline)" stroke-width="3"/>
+        <path class="finger-open" d="M 140 200 Q 138 145 140 95 Q 142 45 145 5 L 165 7 Q 162 50 160 95 Q 158 145 157 200 Z" 
+              fill="var(--hand-skin)" stroke="var(--hand-outline)" stroke-width="3" opacity="0"/>
+      </g>
+      
+      <!-- Ring -->
+      <g id="ring" class="finger" onclick="toggleHandFinger('ring')">
+        <path class="finger-closed" d="M 175 200 Q 175 160 178 120 Q 180 80 183 50 L 203 52 Q 200 85 198 120 Q 196 160 193 200 Z" 
+              fill="var(--hand-skin)" stroke="var(--hand-outline)" stroke-width="3"/>
+        <path class="finger-open" d="M 175 200 Q 175 145 178 95 Q 180 45 183 15 L 203 17 Q 200 50 198 95 Q 196 145 193 200 Z" 
+              fill="var(--hand-skin)" stroke="var(--hand-outline)" stroke-width="3" opacity="0"/>
+      </g>
+      
+      <!-- Pinky -->
+      <g id="pinky" class="finger" onclick="toggleHandFinger('pinky')">
+        <path class="finger-closed" d="M 210 210 Q 215 175 220 145 Q 225 115 228 90 L 245 93 Q 242 120 238 145 Q 233 175 227 210 Z" 
+              fill="var(--hand-skin)" stroke="var(--hand-outline)" stroke-width="3"/>
+        <path class="finger-open" d="M 210 210 Q 215 165 220 125 Q 225 85 228 55 L 245 58 Q 242 90 238 125 Q 233 165 227 210 Z" 
+              fill="var(--hand-skin)" stroke="var(--hand-outline)" stroke-width="3" opacity="0"/>
+      </g>
+      
+      <!-- Wrist -->
+      <rect x="110" y="340" width="80" height="50" rx="10" fill="var(--hand-skin)" stroke="var(--hand-outline)" stroke-width="3"/>
+    </svg>
   </div>
-
+  
+  <p class="selectedLabel">Selected: <span id="selectedDisplay">None</span></p>
+  <button class="btnLock" onclick="lockHand()">🔒 LOCK HAND</button>
 </div>
+
+</div> <!-- ← closes gameScreen -->
 
 <!-- INNINGS BREAK SCREEN -->
 <div id="inningsBreakScreen" class="screen">
