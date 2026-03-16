@@ -1,3 +1,5 @@
+/* script.js */
+
 let lastBalls = [];
 let selectedFingers = [];
 let socket = null;
@@ -6,121 +8,162 @@ let roomCode = "";
 let isHost = false;
 let gameMode = "limited";
 
+// Game state tracked on frontend
+let mySlot = null;         // "A" or "B"
+let currentBattingName = "";
+let currentBowlingName = "";
+let matchMode = "limited"; // synced from server on MATCH_DECISION
+let matchOvers = 0;
+
 const sounds = {
-wicket: new Audio("sounds/wicket.mp3"),
-six: new Audio("sounds/six.m4a")
+  wicket: new Audio("sounds/wicket.mp3"),
+  six: new Audio("sounds/six.m4a")
 };
 
-function playSound(name){
-if(sounds[name]){
-sounds[name].currentTime=0;
-sounds[name].play();
-}
+function playSound(name) {
+  if (sounds[name]) {
+    sounds[name].currentTime = 0;
+    sounds[name].play().catch(() => {});
+  }
 }
 
 function showScreen(id) {
-    document.querySelectorAll(".screen").forEach(screen => {
-        screen.classList.remove("active");
-    });
-
-    document.getElementById(id).classList.add("active");
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
 }
 
 function goToMode() {
-    const nameInput = document.getElementById("playerNameInput").value;
-
-    if (!nameInput) {
-        alert("Enter your name first!");
-        return;
-    }
-
-    playerName = nameInput;
-    showScreen("modeScreen");
+  const nameInput = document.getElementById("playerNameInput").value.trim();
+  if (!nameInput) { alert("Enter your name first!"); return; }
+  playerName = nameInput;
+  showScreen("modeScreen");
 }
 
 function goToRoomSetup() {
-    showScreen("roomSetupScreen");
+  showScreen("roomSetupScreen");
+}
+
+/* script.js — replace setMode() */
+
+function setMode(mode) {
+  gameMode = mode;
+  const oversInput = document.getElementById("oversInput");
+
+  document.getElementById("limitedBtn").classList.toggle("active", mode === "limited");
+  document.getElementById("unlimitedBtn").classList.toggle("active", mode === "unlimited");
+
+  if (mode === "unlimited") {
+    oversInput.value = "";
+    oversInput.disabled = true;
+    oversInput.style.display = "none";
+  } else {
+    oversInput.disabled = false;
+    oversInput.style.display = "block";
+  }
 }
 
 function createRoom() {
+  const overs = document.getElementById("oversInput").value;
+  const wickets = document.getElementById("wicketsInput").value;
+  const code = document.getElementById("createRoomCodeInput").value.trim();
 
-    const overs = document.getElementById("oversInput").value;
-    const wickets = document.getElementById("wicketsInput").value;
-    const code = document.getElementById("createRoomCodeInput").value;
-
-    if (gameMode === "limited") {
-
-  if (!overs || !wickets || !code) {
-    alert("Fill all fields!");
-    return;
+  if (gameMode === "limited" && (!overs || !wickets || !code)) {
+    alert("Fill all fields!"); return;
+  }
+  if (gameMode === "unlimited" && (!wickets || !code)) {
+    alert("Fill all fields!"); return;
   }
 
-} else {
-
-  if (!wickets || !code) {
-    alert("Fill all fields!");
-    return;
-  }
-
-}
-
-    roomCode = code;
-    isHost = true;
-
-    if (gameMode === "limited") {
-  connectToServer(code, overs, wickets);
-} else {
-  connectToServer(code, null, wickets);
-}
-
-    showScreen("lobbyScreen");
+  roomCode = code;
+  isHost = true;
+  connectToServer(code, gameMode === "limited" ? overs : null, wickets);
+  showScreen("lobbyScreen");
 }
 
 function joinRoom() {
+  const code = document.getElementById("joinRoomCodeInput").value.trim();
+  if (!code) { alert("Enter room code!"); return; }
+  roomCode = code;
+  isHost = false;
+  connectToServer(code, null, null);
+  showScreen("lobbyScreen");
+}
 
-    const code = document.getElementById("joinRoomCodeInput").value;
+function startMatch() {
+  const teamB = document.getElementById("teamB").innerText;
+  if (!isHost) { alert("Only host can start match"); return; }
+  if (teamB === "Empty" || teamB === "Waiting...") {
+    alert("Waiting for opponent to join"); return;
+  }
+  socket.send(JSON.stringify({ type: "START_MATCH" }));
+}
 
-    if (!code) {
-        alert("Enter room code!");
-        return;
-    }
+function copyRoomCode() {
+  navigator.clipboard.writeText(roomCode);
+  window.afterCopy = true;
+  document.getElementById("resultTitle").innerText = "Copied!";
+  document.getElementById("resultText").innerText = "Room code copied to clipboard.";
+  showScreen("resultScreen");
+}
 
-    roomCode = code;
-    isHost = false;
+/* script.js — replace continueGame() */
 
-    connectToServer(code, null, null);
-
+function continueGame() {
+  if (window.afterCopy) {
+    window.afterCopy = false;
     showScreen("lobbyScreen");
+    return;
+  }
+  if (window.matchOverResult) {
+    window.matchOverResult = false;
+    location.reload();
+    return;
+  }
+  if (window.afterInningsBreak) {
+    window.afterInningsBreak = false;
+    showScreen("gameScreen");
+    return;
+  }
+  showScreen("gameScreen");
+}
+
+function toggleTheme() {
+  document.body.classList.toggle("light");
+  document.getElementById("themeToggle").innerText =
+    document.body.classList.contains("light") ? "☀️" : "🌙";
 }
 
 function sendToss(choice) {
-
   socket.send(JSON.stringify({
     type: "TOSS_CHOICE",
     player: isHost ? "A" : "B",
-    choice: choice
+    choice
   }));
-
 }
 
 function sendDecision(choice) {
-
   socket.send(JSON.stringify({
     type: "BAT_BOWL_CHOICE",
     player: isHost ? "A" : "B",
-    choice: choice
+    choice
   }));
+}
 
+function toggleFinger(finger, btn) {
+  if (selectedFingers.includes(finger)) {
+    selectedFingers = selectedFingers.filter(f => f !== finger);
+    btn.classList.remove("selected");
+  } else {
+    selectedFingers.push(finger);
+    btn.classList.add("selected");
+  }
+  document.getElementById("selectedDisplay").innerText =
+    selectedFingers.length > 0 ? selectedFingers.join(", ") : "None";
 }
 
 function lockHand() {
-
-  if (selectedFingers.length === 0) {
-    alert("Select at least one finger!");
-    return;
-  }
-
-  if(window.handLocked) return;
+  if (selectedFingers.length === 0) { alert("Select at least one finger!"); return; }
+  if (window.handLocked) return;
   window.handLocked = true;
 
   socket.send(JSON.stringify({
@@ -135,372 +178,313 @@ function lockHand() {
   }));
 
   selectedFingers = [];
-
-document.querySelectorAll(".fingerBtn").forEach(btn=>{
-btn.classList.remove("selected");
-});
-
-document.getElementById("selectedDisplay").innerText =
-"Locked! Waiting for opponent...";
+  document.querySelectorAll(".fingerBtn").forEach(btn => btn.classList.remove("selected"));
+  document.getElementById("selectedDisplay").innerText = "Locked! Waiting for opponent...";
 }
 
-function toggleFinger(finger, btn) {
+// ─── Scoreboard helpers ───────────────────────────────────────────
 
-  if (selectedFingers.includes(finger)) {
+function updateScoreboard(payload) {
+  const {
+    battingName, bowlingName,
+    scoreA, scoreB, wicketsA, wicketsB,
+    balls, ballsLeft, innings, target,
+    out, lastRuns
+  } = payload;
 
-    selectedFingers = selectedFingers.filter(f => f !== finger);
-    btn.classList.remove("selected");
+  currentBattingName = battingName;
+  currentBowlingName = bowlingName;
 
+  // Names
+  document.getElementById("battingName").innerText = "Bat: " + battingName;
+  document.getElementById("bowlingName").innerText = "Bowl: " + bowlingName;
+
+  // Which score belongs to batting team
+  const teamAName = document.getElementById("teamA").innerText;
+  const battingScore = battingName === teamAName ? scoreA : scoreB;
+  const battingWickets = battingName === teamAName ? wicketsA : wicketsB;
+
+  document.getElementById("batterStats").innerText =
+    "(" + battingScore + "-" + battingWickets + ")";
+
+  document.getElementById("mainScore").innerText =
+    battingScore + " / " + battingWickets;
+
+  // Overs display (limited only)
+  if (matchMode === "limited") {
+    const over = Math.floor(balls / 6);
+    const ball = balls % 6;
+    document.getElementById("overDisplay").innerText = over + "." + ball;
+    document.getElementById("ballsLeftDisplay").innerText = ballsLeft ?? "-";
   } else {
-
-    selectedFingers.push(finger);
-    btn.classList.add("selected");
-
+    document.getElementById("overDisplay").innerText = "-";
+    document.getElementById("ballsLeftDisplay").innerText = "-";
   }
 
-  document.getElementById("selectedDisplay").innerText =
-    selectedFingers.length > 0
-      ? selectedFingers.join(", ")
-      : "None";
-}
+  // Innings
+  document.getElementById("inningsDisplay").innerText = "Innings: " + innings;
 
-function continueGame(){
+  // Target info (innings 2 only)
+  if (target) {
+    const runsLeft = Math.max(target - battingScore, 0);
+    document.getElementById("targetDisplay").innerText = target;
+    document.getElementById("runsLeftDisplay").innerText = runsLeft;
 
-if(window.afterCopy){
-window.afterCopy = false;
-showScreen("lobbyScreen");
-return;
-}
-
-showScreen("gameScreen");
-
-}
-
-function setMode(mode) {
-
-  gameMode = mode;
-
-  const oversInput = document.getElementById("oversInput");
-
-  if (mode === "unlimited") {
-    oversInput.value = "";
-    oversInput.disabled = true;
-    oversInput.style.display = "none";
+    if (matchMode === "limited" && ballsLeft > 0) {
+      document.getElementById("rrrDisplay").innerText =
+        (runsLeft / ballsLeft).toFixed(2);
+    } else {
+      document.getElementById("rrrDisplay").innerText = "-";
+    }
   } else {
-    oversInput.disabled = false;
-    oversInput.style.display = "block";
+    document.getElementById("targetDisplay").innerText = "-";
+    document.getElementById("runsLeftDisplay").innerText = "-";
+    document.getElementById("rrrDisplay").innerText = "-";
   }
 
+  // Mode label
+  document.getElementById("modeDisplay").innerText =
+    "Single • " + (matchMode === "limited" ? "Limited" : "Unlimited");
 }
 
-function startMatch() {
+function updateBallHistory(balls, out, lastRuns) {
+  const ballRun = out ? "W" : lastRuns;
 
-const teamA=document.getElementById("teamA").innerText;
-const teamB=document.getElementById("teamB").innerText;
+  // Reset history at start of each new over (ball 0 = first ball of over)
+  if (balls % 6 === 1) {
+    lastBalls = [];
+  }
 
-if(!isHost){
-alert("Only host can start match");
-return;
+  lastBalls.push(ballRun);
+
+  const boxes = document.querySelectorAll(".ballBox");
+  boxes.forEach((box, i) => {
+    box.innerText = lastBalls[i] !== undefined ? lastBalls[i] : "-";
+    box.classList.remove("ballFlash");
+  });
+
+  // Flash only the latest ball
+  if (boxes[lastBalls.length - 1]) {
+    boxes[lastBalls.length - 1].classList.add("ballFlash");
+    setTimeout(() => boxes[lastBalls.length - 1].classList.remove("ballFlash"), 500);
+  }
 }
 
-if(teamA==="Empty" || teamB==="Empty" || teamB==="Waiting..."){
-alert("Waiting for opponent to join");
-return;
-}
+/* script.js — add as a new top-level function */
 
-socket.send(JSON.stringify({
-type:"START_MATCH"
-}));
+let breakCountdownTimer = null;
 
-}
+function startBreakCountdown() {
+  let secs = 5;
+  document.getElementById("breakCountdownNum").innerText = secs;
 
-function copyRoomCode(){
+  if (breakCountdownTimer) clearInterval(breakCountdownTimer);
 
-navigator.clipboard.writeText(roomCode);
-
-document.getElementById("resultTitle").innerText = "Copied";
-document.getElementById("resultText").innerText = "Room code copied to clipboard";
-
-showScreen("resultScreen");
-
-window.afterCopy = true;
-
-}
-
-function toggleTheme(){
-
-document.body.classList.toggle("light");
-
-const btn=document.getElementById("themeToggle");
-
-if(document.body.classList.contains("light")){
-btn.innerText="☀️";
-}else{
-btn.innerText="🌙";
-}
-
-}
-
-function connectToServer(code, overs, wickets) {
-
-    socket = new WebSocket(
-        "wss://handcricket-server.mahin-aistudio.workers.dev/" + code
-    );
-
-    socket.onopen = () => {
-
-        socket.send(JSON.stringify({
-    type: "JOIN_ROOM",
-    payload: {
-        playerName: playerName,
-        overs: overs,
-        wickets: wickets,
-        mode: gameMode
+  breakCountdownTimer = setInterval(() => {
+    secs--;
+    document.getElementById("breakCountdownNum").innerText = secs;
+    if (secs <= 0) {
+      clearInterval(breakCountdownTimer);
+      breakCountdownTimer = null;
+      goToInnings2();
     }
-}));
-    };
-
-    socket.onmessage = (event) => {
-
-        console.log("Received:", event.data);
-
-        const data = JSON.parse(event.data);
-
-if (data.type === "ROOM_JOINED") {
-
-  roomCode = data.payload.roomCode;
-
-  document.getElementById("lobbyRoomCode").innerText = roomCode;
-
+  }, 1000);
 }
 
-        if (data.type === "LOBBY_UPDATE") {
-
-    if (data.payload.roomCode) {
-        roomCode = data.payload.roomCode;
-    }
-
-    document.getElementById("lobbyRoomCode").innerText = roomCode;
-
-    document.getElementById("teamA").innerText =
-        data.payload.teamA || "Empty";
-
-    document.getElementById("teamB").innerText =
-        data.payload.teamB || "Empty";
-
+function skipBreak() {
+  if (breakCountdownTimer) {
+    clearInterval(breakCountdownTimer);
+    breakCountdownTimer = null;
+  }
+  goToInnings2();
 }
 
-if (data.type === "MATCH_DECISION") {
-
-alert(
-"Batting: " + data.payload.batting +
-"\nBowling: " + data.payload.bowling
-);
-
+function goToInnings2() {
+  // Reset game screen for innings 2
+  lastBalls = [];
+  document.getElementById("mainScore").innerText = "0 / 0";
+  document.getElementById("overDisplay").innerText = "0.0";
+  document.getElementById("ballsLeftDisplay").innerText =
+    matchMode === "limited" ? (matchOvers * 6) : "-";
+  document.getElementById("runsLeftDisplay").innerText = "-";
+  document.getElementById("rrrDisplay").innerText = "-";
+  document.getElementById("inningsDisplay").innerText = "Innings: 2";
+  document.getElementById("ballMessage").innerText = "";
+  document.querySelectorAll(".ballBox").forEach(b => b.innerText = "-");
+  window.handLocked = false;
   showScreen("gameScreen");
 }
 
-if (data.type === "TOSS_CALLER") {
+/* script.js — replace showBallMessage() */
 
-  showScreen("tossScreen");
-
-  if ((isHost && data.payload.caller === "A") ||
-      (!isHost && data.payload.caller === "B")) {
-
-    document.getElementById("tossButtons").style.display = "block";
+function showBallMessage(out, lastRuns) {
+  const msg = document.getElementById("ballMessage");
+  if (out) {
+    playSound("wicket");
+    msg.innerText = "WICKET! 🔴";
+    msg.style.color = "var(--red)";
+  } else if (lastRuns === 6) {
+    playSound("six");
+    msg.innerText = "SIX! 🚀";
+    msg.style.color = "var(--amber)";
+  } else if (lastRuns === 4) {
+    msg.innerText = "FOUR! 💥";
+    msg.style.color = "var(--green)";
+  } else if (lastRuns === 0) {
+    msg.innerText = "DOT BALL •";
+    msg.style.color = "var(--text-muted)";
   } else {
-    document.getElementById("tossButtons").style.display = "none";
+    msg.innerText = lastRuns + (lastRuns === 1 ? " RUN" : " RUNS");
+    msg.style.color = "var(--text)";
   }
 }
 
-if (data.type === "BALL_RESULT") {
+// ─── Server connection ────────────────────────────────────────────
 
-window.handLocked = false;
+function connectToServer(code, overs, wickets) {
 
-const battingName = data.payload.battingName;
-const bowlingName = data.payload.bowlingName;
+  socket = new WebSocket(
+    "wss://handcricket-server.mahin-aistudio.workers.dev/" + code
+  );
 
-document.getElementById("battingName").innerText = battingName;
-document.getElementById("bowlingName").innerText = bowlingName;
+  socket.onopen = () => {
+    socket.send(JSON.stringify({
+      type: "JOIN_ROOM",
+      payload: { playerName, overs, wickets, mode: gameMode }
+    }));
+  };
 
-if (battingName === document.getElementById("teamA").innerText) {
+  socket.onmessage = (event) => {
+    console.log("Received:", event.data);
+    const data = JSON.parse(event.data);
 
-  batterRuns = data.payload.scoreA;
-  batterWickets = data.payload.wicketsA;
+    // ── ROOM_JOINED ──
+    if (data.type === "ROOM_JOINED") {
+      roomCode = data.payload.roomCode;
+      mySlot = data.payload.slot;
+      document.getElementById("lobbyRoomCode").innerText = roomCode;
+    }
 
-} else {
+    // ── LOBBY_UPDATE ──
+    if (data.type === "LOBBY_UPDATE") {
+      document.getElementById("lobbyRoomCode").innerText = roomCode;
+      document.getElementById("teamA").innerText = data.payload.teamA || "Empty";
+      document.getElementById("teamB").innerText = data.payload.teamB || "Empty";
+    }
 
-  batterRuns = data.payload.scoreB;
-  batterWickets = data.payload.wicketsB;
+    // ── TOSS_CALLER ──
+    if (data.type === "TOSS_CALLER") {
+      showScreen("tossScreen");
+      const iAmCaller =
+        (isHost && data.payload.caller === "A") ||
+        (!isHost && data.payload.caller === "B");
+      document.getElementById("tossButtons").style.display = iAmCaller ? "flex" : "none";
+      document.getElementById("tossWaiting").style.display = iAmCaller ? "none" : "block";
+    }
 
+    // ── TOSS_RESULT ──
+    if (data.type === "TOSS_RESULT") {
+      const teamAName = document.getElementById("teamA").innerText;
+      const teamBName = document.getElementById("teamB").innerText;
+
+      showScreen("decisionScreen");
+
+      // Show toss result inline instead of alert
+      document.getElementById("decisionWaiting").innerText =
+        "🪙 " + data.payload.coin.toUpperCase() + " — " + data.payload.winner + " won the toss!";
+
+      const amIWinner =
+        (isHost && data.payload.winner === teamAName) ||
+        (!isHost && data.payload.winner === teamBName);
+
+      document.getElementById("decisionButtons").style.display = amIWinner ? "flex" : "none";
+      document.getElementById("decisionWaiting").style.display = "block";
+    }
+
+    // ── MATCH_DECISION ──
+    if (data.type === "MATCH_DECISION") {
+      // Store mode from server so scoreboard is accurate
+      matchMode = data.payload.mode;
+      matchOvers = data.payload.overs || 0;
+
+      currentBattingName = data.payload.batting;
+      currentBowlingName = data.payload.bowling;
+
+      // Reset ball history for fresh innings
+      lastBalls = [];
+
+      // Reset scoreboard to zero state
+      document.getElementById("mainScore").innerText = "0 / 0";
+      document.getElementById("overDisplay").innerText = "0.0";
+      document.getElementById("targetDisplay").innerText = "-";
+      document.getElementById("ballsLeftDisplay").innerText =
+        matchMode === "limited" ? (matchOvers * 6) : "-";
+      document.getElementById("runsLeftDisplay").innerText = "-";
+      document.getElementById("rrrDisplay").innerText = "-";
+      document.getElementById("battingName").innerText = "Bat: " + data.payload.batting;
+      document.getElementById("bowlingName").innerText = "Bowl: " + data.payload.bowling;
+      document.getElementById("inningsDisplay").innerText = "Innings: 1";
+      document.getElementById("modeDisplay").innerText =
+        "Single • " + (matchMode === "limited" ? "Limited" : "Unlimited");
+      document.getElementById("ballMessage").innerText = "";
+
+      // Reset ball boxes
+      document.querySelectorAll(".ballBox").forEach(b => b.innerText = "-");
+
+      showScreen("gameScreen");
+    }
+
+    // ── BALL_RESULT ──
+    if (data.type === "BALL_RESULT") {
+      window.handLocked = false;
+
+      updateScoreboard(data.payload);
+      updateBallHistory(data.payload.balls, data.payload.out, data.payload.lastRuns);
+      showBallMessage(data.payload.out, data.payload.lastRuns);
+
+      /* script.js — replace the matchOver block inside BALL_RESULT handler */
+
+if (data.payload.matchOver) {
+  const winner = data.payload.winner;
+  const isDraw = winner === "Draw";
+  setTimeout(() => {
+    document.getElementById("resultEmoji").innerText = isDraw ? "🤝" : "🏆";
+    document.getElementById("resultTitle").innerText = isDraw ? "It's a Draw!" : "Match Over!";
+    document.getElementById("resultText").innerText =
+      isDraw ? "Both teams scored the same!" : "🎉 Winner: " + winner;
+    window.afterCopy = false;
+    window.matchOverResult = true;
+    showScreen("resultScreen");
+  }, 900);
 }
+    }
 
-document.getElementById("batterStats").innerText =
-  "(" + batterRuns + "-" + batterWickets + ")";
+    /* script.js — replace the INNINGS_BREAK handler inside socket.onmessage */
 
-let battingScore;
-let battingWickets;
-
-if (battingName === data.payload.battingName) {
-
-  if (battingName === document.getElementById("teamA").innerText) {
-    battingScore = data.payload.scoreA;
-    battingWickets = data.payload.wicketsA;
-  } else {
-    battingScore = data.payload.scoreB;
-    battingWickets = data.payload.wicketsB;
-  }
-
-}
-
-document.getElementById("mainScore").innerText =
-  battingScore + " / " + battingWickets;
-
-let balls = data.payload.balls;
-
-let over = Math.floor(balls / 6);
-let ball = balls % 6;
-
-document.getElementById("overDisplay").innerText =
-  over + "." + ball;
-
-document.getElementById("ballsLeftDisplay").innerText =
-  data.payload.ballsLeft;
-
-if (data.payload.target) {
-
-  let target = data.payload.target;
-  let ballsLeft = data.payload.ballsLeft;
-
-  document.getElementById("targetDisplay").innerText = target;
-
-  let runsLeft = target - battingScore;
-
-  if(runsLeft < 0){
-  runsLeft = 0;
-  }
-
-  document.getElementById("runsLeftDisplay").innerText = runsLeft;
-
-  if (ballsLeft > 0) {
-
-    let runsNeeded = Math.max(target - battingScore, 0);
-
-    let rrr = runsNeeded / ballsLeft;
-
-    document.getElementById("rrrDisplay").innerText =
-      rrr.toFixed(2);
-
-  }
-}
-
-let ballRun;
-
-if (data.payload.out) {
-  ballRun = "W";
-} else {
-  ballRun = data.payload.out ? "W" : data.payload.lastRuns;
-}
-
-let ballNumber = balls % 6;
-
-if(ballNumber === 1){
+if (data.type === "INNINGS_BREAK") {
+  window.handLocked = false;
   lastBalls = [];
+
+  const p = data.payload;
+
+  document.getElementById("breakBattedName").innerText = p.nextBowlingName;
+  document.getElementById("breakScore1").innerText =
+    p.innings1Score + " / " + p.innings1Wickets;
+  document.getElementById("breakTarget").innerText = p.target;
+  document.getElementById("breakBattingNext").innerText = p.nextBattingName;
+  document.getElementById("breakModeInfo").innerText =
+    p.mode === "limited"
+      ? "Needs " + p.target + " in " + (p.overs * 6) + " balls"
+      : "Needs " + p.target + " runs (no ball limit)";
+
+  showScreen("inningsBreakScreen");
+  startBreakCountdown();
 }
 
-lastBalls.push(ballRun);
-
-const boxes = document.querySelectorAll(".ballBox");
-
-boxes.forEach((box, i) => {
-
-  box.innerText = lastBalls[i] || "-";
-
-  if(i === lastBalls.length-1){
-    box.classList.add("ballFlash");
-
-    setTimeout(()=>{
-      box.classList.remove("ballFlash");
-    },500);
-  }
-
-});
-
-  document.getElementById("inningsDisplay").innerText = data.payload.innings;
-
-  if (data.payload.target) {
-    document.getElementById("targetDisplay").innerText = data.payload.target;
-  }
-
-const msg = document.getElementById("ballMessage");
-
-if(data.payload.out){
-playSound("wicket");
-
-  msg.innerText = "WICKET!";
-  msg.style.color = "#ff4444";
-
-}else{
-
-  let runs = data.payload.lastRuns;
-
-  if(runs === 6){
-playSound("six");
-    msg.innerText = "SIX!";
-    msg.style.color = "#ff9800";
-  }
-  else if(runs === 4){
-    msg.innerText = "FOUR!";
-    msg.style.color = "#4caf50";
-  }
-  else{
-    msg.innerText = runs + " RUN";
-    msg.style.color = "white";
-  }
-
-}
-  if (data.payload.matchOver) {
-
-  document.getElementById("ballMessage").innerText =
-    "Match Over! Winner: " + data.payload.winner;
-
-  const rematch = confirm("Match Over!\nWinner: " + data.payload.winner + "\n\nRematch?");
-
-  if (rematch) {
-    location.reload();
-  } else {
-    showScreen("nameScreen");
-  }
-
-}
-
-}
-
-if (data.type === "TOSS_RESULT") {
-
-alert(
-  "Coin: " + data.payload.coin +
-  "\nWinner: " + data.payload.winner
-);
-
-  showScreen("decisionScreen");
-
-  const amIWinner =
-    (isHost && data.payload.winner === document.getElementById("teamA").innerText) ||
-    (!isHost && data.payload.winner === document.getElementById("teamB").innerText);
-
-  if (amIWinner) {
-    document.getElementById("decisionButtons").style.display = "block";
-    document.getElementById("decisionWaiting").style.display = "none";
-  } else {
-    document.getElementById("decisionButtons").style.display = "none";
-    document.getElementById("decisionWaiting").style.display = "block";
-  }
-}
-
-        if (data.type === "ROOM_FULL") {
-            alert("Room is full!");
-            showScreen("modeScreen");
-        }
-    };
+    // ── ROOM_FULL ──
+    if (data.type === "ROOM_FULL") {
+      alert("Room is full!");
+      showScreen("modeScreen");
+    }
+  };
 }
