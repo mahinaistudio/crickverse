@@ -363,7 +363,7 @@ function updateScoreboard(payload) {
 
     if (matchMode === "limited" && ballsLeft > 0) {
       document.getElementById("rrrDisplay").innerText =
-        (runsLeft / ballsLeft * 6).toFixed(2);
+        (runsLeft / ballsLeft).toFixed(2);
     } else {
       document.getElementById("rrrDisplay").innerText = "-";
     }
