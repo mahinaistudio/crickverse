@@ -3,8 +3,8 @@
   "short_name": "CrickVerse",
   "start_url": "index.html",
   "display": "standalone",
-  "background_color": "#0b1c2c",
-  "theme_color": "#0b1c2c",
+  "background_color": "#080c17",
+  "theme_color": "#080c17",
   "icons": [
     {
       "src": "icon.png",
