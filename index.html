@@ -469,8 +469,8 @@
 </div>
 
 <!-- Keybind capture overlay -->
-<div id="keybindCapture" class="popupOverlay" style="display:none;">
-  <div class="popupCard">
+<div id="keybindCapture" class="popupOverlay" style="display:none;" onclick="stopListening()">
+  <div class="popupCard" onclick="event.stopPropagation()">
     <p class="popupEmoji">⌨️</p>
     <h3>Press any key</h3>
     <p class="popupMsg">Rebinding: <strong id="keybindTarget">—</strong></p>
