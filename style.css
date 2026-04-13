@@ -407,7 +407,8 @@ font-family: var(--font-body);
 .handContainer {
   width: 100%;
   max-width: min(340px, 80vw);
-  margin: 0 auto;
+  margin: 0 auto 0 7%;
+  margin-bottom: -2%;  /* cuts the dead canvas space below the fist */
   display: flex;
   justify-content: center;
   align-items: center;
