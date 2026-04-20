@@ -723,7 +723,7 @@ function exitMatch() {
 
 // ── Server Connection ──
 function connectToServer(code, overs, wickets, spectate = false, isCreating = false) {
-  socket = new WebSocket("wss://handcricket-server.mahin-aistudio.workers.dev/" + code);
+  socket = new WebSocket("wss://crickverse.mahin-aistudio.workers.dev/" + code);
 
   socket.onopen = () => {
     if (isCreating) {
